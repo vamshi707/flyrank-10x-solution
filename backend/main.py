@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from database import (
@@ -9,6 +9,11 @@ from database import (
     get_products_by_category
 )
 
+from auth import login_user, get_current_user
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 app = FastAPI(title="FlyRank 10x Solution")
 
@@ -30,7 +35,26 @@ def home():
 
 
 @app.post("/products")
-def add_product(product: ProductCreate):
+def add_product(
+    product: ProductCreate,
+    authorization: str = Header(None)
+):
+
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required"
+        )
+
+    token = authorization.replace("Bearer ", "", 1)
+
+    try:
+        get_current_user(token)
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token"
+        )
 
     product_id = create_product(
         product.name,
@@ -45,11 +69,13 @@ def add_product(product: ProductCreate):
     }
 
 
+
 @app.get("/products")
 def list_products():
     return {
         "products": get_products()
     }
+
 @app.get("/products/{product_id}")
 def get_single_product(product_id: int):
 
@@ -73,3 +99,45 @@ def products_by_category(category: str):
         "category": category,
         "products": products
     }
+
+@app.post("/auth/login")
+def login(request: LoginRequest):
+
+    try:
+        return login_user(request.email, request.password)
+
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+@app.get("/auth/me")
+def current_user(authorization: str = Header(None)):
+
+    if not authorization:
+        raise HTTPException(
+            status_code=401,
+            detail="Authorization header required"
+        )
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Use Bearer token"
+        )
+
+    token = authorization.replace("Bearer ", "", 1)
+
+    try:
+        user = get_current_user(token)
+
+        return {
+            "user_id": user.id,
+            "email": user.email
+        }
+
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token"
+        )
