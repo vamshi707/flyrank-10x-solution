@@ -53,3 +53,18 @@ def get_products():
     connection.close()
 
     return [dict(row) for row in rows]
+
+def get_product(product_id):
+    connection = get_connection()
+
+    row = connection.execute(
+        "SELECT id, name, category, price FROM products WHERE id = ?",
+        (product_id,)
+    ).fetchone()
+
+    connection.close()
+
+    if row is None:
+        return None
+
+    return dict(row)
