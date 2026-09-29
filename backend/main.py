@@ -1,7 +1,13 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from database import create_table, create_product, get_products, get_product
+from database import (
+    create_table,
+    create_product,
+    get_products,
+    get_product,
+    get_products_by_category
+)
 
 
 app = FastAPI(title="FlyRank 10x Solution")
@@ -56,4 +62,14 @@ def get_single_product(product_id: int):
 
     return {
         "product": product
+    }
+
+@app.get("/products/category/{category}")
+def products_by_category(category: str):
+
+    products = get_products_by_category(category)
+
+    return {
+        "category": category,
+        "products": products
     }

@@ -68,3 +68,19 @@ def get_product(product_id):
         return None
 
     return dict(row)
+
+def get_products_by_category(category):
+    connection = get_connection()
+
+    rows = connection.execute(
+        """
+        SELECT id, name, category, price
+        FROM products
+        WHERE category = ?
+        """,
+        (category,)
+    ).fetchall()
+
+    connection.close()
+
+    return [dict(row) for row in rows]
